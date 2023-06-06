@@ -1,0 +1,50 @@
+---
+variables:
+  HOSTS:
+    description: "указать список хостов или группу, по умолчанию all"
+    value: "all"
+image: registry.asiacredit.ru/ansible/runner_config:1.2
+
+stages:
+  - verify
+  - testing
+  - deploy
+
+## prepare for plays
+before_script:
+  - ansible --version
+  - ansible-lint --version
+  - mkdir secret
+  - echo "$ANSIBLE_SSHKEY" > secret/ansible.key ## import ansible ssh key
+  - chmod 400 secret/ansible.key
+  - export ANSIBLE_HOST_KEY_CHECKING=False
+
+## verify syntax each commit
+ansible-verify:
+  stage: verify
+  tags:
+    - ansible
+  script:
+    - git clone --single-branch -b new-inventory-test https://gitlab-ci-token:${CI_JOB_TOKEN}@git02.asiacredit.ru/ansible/runner_config.git inv
+    - ansible-lint -v *.yml
+    - ansible-playbook --inventory .inv/inventory/test.yml --syntax-check *.yml
+  allow_failure: true
+## test playbook on test inventory with $TEST_INVENTORY group var
+testing:
+  stage: testing
+  tags:
+    - ansible
+  script:
+    - git clone --single-branch -b new-inventory-test https://gitlab-ci-token:${CI_JOB_TOKEN}@git02.asiacredit.ru/ansible/runner_config.git inv
+    - ansible-playbook --private-key secret/ansible.key --user ansible --inventory ./inv/inventory/test.yml --limit ${HOSTS} *.yml
+
+### deploy playbook with manual run
+deploy:
+  stage: deploy
+  tags:
+    - ansible
+  script:
+    - git clone --single-branch -b new-inventory-test https://gitlab-ci-token:${CI_JOB_TOKEN}@git02.asiacredit.ru/ansible/runner_config.git inv
+    - ansible-playbook --private-key secret/ansible.key --user ansible --inventory ./inv/inventory/prod.yml --limit ${HOSTS} *.yml
+  when: manual
+  
