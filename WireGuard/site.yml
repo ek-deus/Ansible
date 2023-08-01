@@ -1,0 +1,5 @@
+
+- name: Configure WireGuard VPN server
+  hosts: vpn_server
+  roles:
+    - wireguard
