@@ -1,0 +1,39 @@
+# roles/wireguard/tasks/main.yml
+- name: Install WireGuard packages
+  apt:
+    name: wireguard-tools
+    state: present
+
+- name: Create WireGuard interfaces
+  ini_file:
+    path: /etc/wireguard/{{ item.name }}.conf
+    section: Interface
+    option: "{{ item.key }}"
+    value: "{{ item.value }}"
+  with_items: "{{ wireguard_interfaces }}"
+
+- name: Generate WireGuard keys for clients
+  command: "wg genkey | tee /etc/wireguard/{{ item.name }}.key | wg pubkey > /etc/wireguard/{{ item.name }}.pub"
+  with_items: "{{ wireguard_clients }}"
+
+- name: Configure WireGuard server
+  ini_file:
+    path: /etc/wireguard/wg0.conf
+    section: Peer
+    option: "{{ item.name }}"
+    value: "{{ item.value }}"
+  with_items: "{{ wireguard_clients }}"
+
+- name: Enable IP forwarding
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: 1
+    state: present
+
+- name: Add iptables rules for NAT
+  iptables:
+    table: nat
+    chain: POSTROUTING
+    jump: MASQUERADE
+    out_interface: "{{ item }}"
+  with_items: "{{ wireguard_interfaces|map(attribute='name')|list }}"
