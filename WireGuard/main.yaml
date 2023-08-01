@@ -1,0 +1,13 @@
+# roles/wireguard/defaults/main.yml
+wireguard_interfaces:  # список интерфейсов WireGuard для создания
+  - name: wg0
+    address: 10.0.0.1/24
+    private_key: # генерируется ключом (по желанию)
+
+wireguard_clients:  # список клиентов, которым нужно предоставить доступ
+  - name: client1
+    address: 10.0.0.2/24
+    public_key: # генерируется ключом (по желанию)
+
+wireguard_allowed_ips:  # список IP-адресов, которым разрешен доступ к серверу
+  - 10.0.0.0/24
