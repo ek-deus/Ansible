@@ -1,0 +1,19 @@
+# roles/wireguard/templates/wg0.conf.j2
+[Interface]
+Address = {{ wireguard_interfaces[0].address }}
+PrivateKey = {{ wireguard_interfaces[0].private_key }}
+
+{% for client in wireguard_clients %}
+[Peer]
+PublicKey = {{ client.public_key }}
+AllowedIPs = {{ client.address }}
+{% endfor %}
+
+# roles/wireguard/templates/{{ item.name }}.conf.j2
+[Interface]
+Address = {{ item.address }}
+PrivateKey = {{ lookup('file', item.name + '.key') }}
+
+[Peer]
+PublicKey = {{ lookup('file', 'wg0.pub') }}
+AllowedIPs = {{ wireguard_allowed_ips|join(',') }}
